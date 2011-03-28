@@ -14,11 +14,14 @@
      (concat (first html) (html-to-markdown (rest html)))
      (cond
       (= "p" (get-name (first html)))
-      (concat "\n" (html-to-markdown (get-content (first html))) "\n"
+      (concat "\n\n" (html-to-markdown (get-content (first html))) "\n\n"
 	      (html-to-markdown (rest html)))
       (= "a" (get-name (first html)))
       (concat "[" (html-to-markdown (get-content (first html))) "]"
 	      "(" (:href (get-attrs (first html))) ")"
+	      (html-to-markdown (rest html)))
+      (= "img" (get-name (first html)))
+      (concat "\n![](" (:src (get-attrs (first html))) ")\n"
 	      (html-to-markdown (rest html)))
       (= "h1" (get-name (first html)))
       (concat "\n#" (html-to-markdown (get-content (first html))) "#\n"
@@ -54,12 +57,21 @@
 	      (html-to-markdown (rest html)))
       (= "hr" (get-name (first html)))
       (concat "\n- - -\n" (html-to-markdown (rest html)))
+      (or (= "script" (get-name (first html)))
+	  (= "title" (get-name (first html))))
+      (html-to-markdown (rest html))
       :else (concat
 	     (html-to-markdown (get-content (first html)))
 	     (html-to-markdown (rest html))))))))
 
+(deftest script-test
+  (is (= "" (html-to-markdown [{:tag :script :content ["test"]}]))))
+
+(deftest title-test
+  (is (= "" (html-to-markdown [{:tag :title :content ["testing"]}]))))
+
 (deftest p-test
-  (is (= "\np test\n" (html-to-markdown [{:tag :p :content ["p test"]}]))))
+  (is (= "\n\nnp test\n\n" (html-to-markdown [{:tag :p :content ["p test"]}]))))
 
 (deftest b-test
   (is (= "**b test**" (html-to-markdown [{:tag :b :content ["b test"]}])))
@@ -90,6 +102,9 @@
 (deftest l-test
   (is (= "\n- Test\n" (html-to-markdown [{:tag :li :content ["Test"]}]))))
 
+(deftest img-test
+  (is (= "\n![](test)\n" (html-to-markdown [{:tag :img :attrs {:src "test"}}]))))
+
 (deftest markdown-test
   (a-test)
   (b-test)
@@ -97,5 +112,8 @@
   (h-test)
   (hr-test)
   (i-test)
+  (img-test)
   (l-test)
-  (p-test))
+  (p-test)
+  (script-test)
+  (title-test))
