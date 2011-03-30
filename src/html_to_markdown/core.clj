@@ -1,9 +1,25 @@
 (ns html-to-markdown.core
   (:use clojure.test))
 
+
+
+
+
+;; Helper functions
+(defn in? [col item] (boolean (some #(= % item) col)))
 (defn get-name [node] (name (:tag node)))
 (defn get-attrs [node] (:attrs node)) 
 (defn get-content [node] (:content node))
+
+(def *escapables* "\\`*_{}[]()#+-.!")
+
+(defn escape-char
+  [c]
+  (if (in? *escapables* c)
+    (str "\\" c)
+    c))
+
+(defn escape-str [s] (apply str (map (comp escape-char) s)))
 
 (defn html-to-markdown
   [html]
@@ -11,7 +27,7 @@
    str
    (if (empty? html) ""
    (if (string? (first html))
-     (concat (first html) (html-to-markdown (rest html)))
+     (concat (escape-str (first html)) (html-to-markdown (rest html)))
      (cond
       (= "p" (get-name (first html)))
       (concat "\n\n" (html-to-markdown (get-content (first html))) "\n\n"
@@ -71,7 +87,7 @@
   (is (= "" (html-to-markdown [{:tag :title :content ["testing"]}]))))
 
 (deftest p-test
-  (is (= "\n\nnp test\n\n" (html-to-markdown [{:tag :p :content ["p test"]}]))))
+  (is (= "\n\np test\n\n" (html-to-markdown [{:tag :p :content ["p test"]}]))))
 
 (deftest b-test
   (is (= "**b test**" (html-to-markdown [{:tag :b :content ["b test"]}])))
@@ -105,6 +121,10 @@
 (deftest img-test
   (is (= "\n![](test)\n" (html-to-markdown [{:tag :img :attrs {:src "test"}}]))))
 
+(deftest escape-test
+  (is (= "\n\n\\\\\\`\\{\\}\\[\\]\\!\\#\\+\\-\\.\\*\\(\\)\n\n"
+	 (html-to-markdown [{:tag :p :content ["\\`{}[]!#+-.*()"]}]))))
+
 (deftest markdown-test
   (a-test)
   (b-test)
@@ -116,4 +136,5 @@
   (l-test)
   (p-test)
   (script-test)
-  (title-test))
+  (title-test)
+  (escape-test))
